@@ -44,12 +44,15 @@ class Server {
 				AbstractRSocket myRSocket = new AbstractRSocket() {
 
 						private final AtomicLong count = new AtomicLong();
+						private final Log log = LogFactory.getLog(getClass());
 
 						@Override
 						public Mono<Payload> requestResponse(Payload p) {
+								String payload = p.getDataUtf8();
+								this.log.info("server: " + payload);
 								return this.count.incrementAndGet() > 5 ?
 									Mono.error(new RuntimeException("failing on purpose!")) :
-									Mono.just(DefaultPayload.create(p.getDataUtf8().equalsIgnoreCase(PONG) ? PING : PONG));
+									Mono.just(DefaultPayload.create(payload.equalsIgnoreCase(PONG) ? PING : PONG));
 						}
 				};
 
@@ -92,6 +95,6 @@ class Client implements ApplicationListener<ApplicationReadyEvent> {
 					.requestResponse(DefaultPayload.create(message))
 					.map(Payload::getDataUtf8)
 					.onErrorReturn("error")
-					.doOnNext(this.log::info);
+					.doOnNext(result -> log.info("client: " + result));
 		}
 }
