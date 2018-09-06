@@ -45,7 +45,7 @@ class Server {
 							public Flux<Payload> requestStream(Payload payload) {
 									return Flux
 										.interval(Duration.ofMillis(100))
-										.map(aLong -> DefaultPayload.create("Interval: " + aLong));
+										.map(aLong -> DefaultPayload.create("interval: " + aLong));
 							}
 					});
 
