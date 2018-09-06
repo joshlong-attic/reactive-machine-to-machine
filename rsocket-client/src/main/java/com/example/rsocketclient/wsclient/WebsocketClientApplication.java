@@ -1,4 +1,4 @@
-package com.example.rsocketclient;
+package com.example.rsocketclient.wsclient;
 
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
@@ -15,9 +15,9 @@ import org.springframework.context.annotation.Bean;
 import java.net.URI;
 
 @SpringBootApplication
-public class RsocketClientApplication {
+public class WebsocketClientApplication {
 
-		private final Log log = LogFactory.getLog(RsocketClientApplication.class.getName());
+		private final Log log = LogFactory.getLog(WebsocketClientApplication.class.getName());
 
 		@Bean(destroyMethod = "dispose")
 		RSocket client(@Value("${ws-uri}") String websocketUri) {
@@ -35,7 +35,7 @@ public class RsocketClientApplication {
 		}
 
 		public static void main(String[] args) {
-				SpringApplication.run(RsocketClientApplication.class, args);
+				SpringApplication.run(WebsocketClientApplication.class, args);
 		}
 
 }
