@@ -10,6 +10,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 
+import java.io.IOException;
+
 /**
 	* @author <a href="mailto:josh@joshlong.com">Josh Long</a>
 	*/
@@ -17,22 +19,23 @@ import org.springframework.context.ApplicationListener;
 @SpringBootApplication
 public class ConsumerApplication implements ApplicationListener<ApplicationReadyEvent> {
 
-		public static void main(String[] args) {
-				SpringApplication.run(ConsumerApplication.class, args);
-		}
+	public static void main(String[] args) throws IOException {
+		SpringApplication.run(ConsumerApplication.class, args);
+		System.in.read();
+	}
 
-		@Override
-		public void onApplicationEvent(ApplicationReadyEvent evt) {
-				RSocketFactory
-					.connect()
-					.transport(TcpClientTransport.create("localhost", 7000))
-					.start()
-					.flatMapMany(socket ->
-							socket
-								.requestStream(DefaultPayload.create("Hello"))
-								.map(Payload::getDataUtf8)
-								.doFinally(signal -> socket.dispose())
-					)
-					.subscribe(name -> log.info("consuming " + name + "."));
-		}
+	@Override
+	public void onApplicationEvent(ApplicationReadyEvent evt) {
+		RSocketFactory
+			.connect()
+			.transport(TcpClientTransport.create("localhost", 7000))
+			.start()
+			.flatMapMany(socket ->
+				socket
+					.requestStream(DefaultPayload.create("Hello"))
+					.map(Payload::getDataUtf8)
+					.doFinally(signal -> socket.dispose())
+			)
+			.subscribe(name -> log.info("consuming " + name + "."));
+	}
 }

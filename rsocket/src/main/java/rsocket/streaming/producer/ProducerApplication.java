@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationListener;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -24,29 +25,30 @@ import java.time.Instant;
 @Log4j2
 public class ProducerApplication implements ApplicationListener<ApplicationReadyEvent> {
 
-		public static void main(String[] args) {
-				SpringApplication.run(ProducerApplication.class, args);
-		}
+	public static void main(String[] args) throws IOException {
+		SpringApplication.run(ProducerApplication.class, args);
+		System.in.read();
+	}
 
-		@Override
-		public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
-				SocketAcceptor sa = (connectionSetupPayload, rSocket) ->
-					Mono.just(new AbstractRSocket() {
+	@Override
+	public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
+		SocketAcceptor sa = (connectionSetupPayload, rSocket) ->
+			Mono.just(new AbstractRSocket() {
 
-							@Override
-							public Flux<Payload> requestStream(Payload payload) {
-									return Flux
-										.interval(Duration.ofMillis(1000))
-										.map(aLong -> DefaultPayload.create("interval: " + aLong));
-							}
-					});
+				@Override
+				public Flux<Payload> requestStream(Payload payload) {
+					return Flux
+						.interval(Duration.ofMillis(1000))
+						.map(aLong -> DefaultPayload.create("interval: " + aLong));
+				}
+			});
 
-				RSocketFactory
-					.receive()
-					.acceptor(sa)
-					.transport(TcpServerTransport.create("localhost", 7000))
-					.start()
-					.onTerminateDetach()
-					.subscribe(nettyContextCloseable -> log.info("started the server @ " + Instant.now().toString()));
-		}
+		RSocketFactory
+			.receive()
+			.acceptor(sa)
+			.transport(TcpServerTransport.create("localhost", 7000))
+			.start()
+			.onTerminateDetach()
+			.subscribe(nettyContextCloseable -> log.info("started the server @ " + Instant.now().toString()));
+	}
 }
