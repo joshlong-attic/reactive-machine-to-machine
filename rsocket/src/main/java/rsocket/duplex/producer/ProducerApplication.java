@@ -3,6 +3,7 @@ package rsocket.duplex.producer;
 import io.rsocket.AbstractRSocket;
 import io.rsocket.Payload;
 import io.rsocket.RSocketFactory;
+import io.rsocket.SocketAcceptor;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.DefaultPayload;
 import org.springframework.boot.SpringApplication;
@@ -22,28 +23,29 @@ public class ProducerApplication {
 
 	public static void main(String args[]) throws Exception {
 		SpringApplication.run(ProducerApplication.class, args);
-		CountDownLatch countDownLatch = new CountDownLatch(1);
-		countDownLatch.await();
+		new CountDownLatch(1).await();
 	}
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void produce() throws Exception {
 
-		RSocketFactory.receive()
-			.acceptor(
-				(setup, reactiveSocket) -> {
-					reactiveSocket
-						.requestStream(DefaultPayload.create("Hello-Bidi"))
-						.map(Payload::getDataUtf8)
-						.log()
-						.subscribe();
+		SocketAcceptor socketAcceptor = (setup, incoming) -> {
+			incoming
+				.requestStream(DefaultPayload.create("Hello-Bidi"))
+				.map(Payload::getDataUtf8)
+				.log()
+				.subscribe();
 
-					return Mono.just(new AbstractRSocket() {
-					});
-				})
+			return Mono.just(new AbstractRSocket() {
+			});
+		};
+
+		RSocketFactory
+			.receive()
+			.acceptor(socketAcceptor)
 			.transport(TcpServerTransport.create("localhost", 7000))
 			.start()
-			.subscribe();
+			.block();
 
 
 	}

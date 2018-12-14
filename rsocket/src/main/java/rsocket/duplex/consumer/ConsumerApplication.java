@@ -13,6 +13,8 @@ import org.springframework.context.event.EventListener;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Function;
 
 /**
 	* @author <a href="mailto:josh@joshlong.com">Josh Long</a>
@@ -20,28 +22,31 @@ import java.time.Duration;
 @SpringBootApplication
 public class ConsumerApplication {
 
-	public static void main(String args[]) {
+	public static void main(String args[]) throws InterruptedException {
 		SpringApplication.run(ConsumerApplication.class, args);
+		new CountDownLatch(1).await();
 	}
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void consume() throws Exception {
 
-		RSocket socket =
-			RSocketFactory.connect()
-				.acceptor(
-					rSocket ->
-						new AbstractRSocket() {
-							@Override
-							public Flux<Payload> requestStream(Payload payload) {
-								return Flux.interval(Duration.ofSeconds(1))
-									.map(aLong -> DefaultPayload.create("Bi-di Response => " + aLong));
-							}
-						})
-				.transport(TcpClientTransport.create("localhost", 7000))
-				.start()
-				.block();
+		Function<RSocket, RSocket> socketFunction = rSocket -> new AbstractRSocket() {
 
-		socket.onClose().block();
+			@Override
+				public Flux<Payload> requestStream(Payload payload) {
+					return Flux
+						.interval(Duration.ofSeconds(1))
+						.map(aLong -> DefaultPayload.create("Bi-di Response => " + aLong))
+						;
+				}
+			};
+
+		RSocketFactory
+			.connect()
+			.acceptor(socketFunction)
+			.transport(TcpClientTransport.create("localhost", 7000))
+			.start()
+			.block()
+		;
 	}
 }
