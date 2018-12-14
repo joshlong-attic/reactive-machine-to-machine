@@ -6,13 +6,14 @@ import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.DefaultPayload;
+import org.reactivestreams.Publisher;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import reactor.core.publisher.Flux;
+import rsocket.duplex.PingPong;
 
-import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
@@ -27,17 +28,21 @@ public class ConsumerApplication {
 		new CountDownLatch(1).await();
 	}
 
+
 	@EventListener(ApplicationReadyEvent.class)
-	public void consume() throws Exception {
+	public void consume() {
 
-		Function<RSocket, RSocket> socketFunction = rSocket -> new AbstractRSocket() {
+		Function<RSocket, RSocket> socketFunction = rSocket ->
+			new AbstractRSocket() {
 
-			@Override
-				public Flux<Payload> requestStream(Payload payload) {
+				@Override
+				public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
 					return Flux
-						.interval(Duration.ofSeconds(1))
-						.map(aLong -> DefaultPayload.create("Bi-di Response => " + aLong))
-						;
+						.from(payloads)
+						.map(Payload::getDataUtf8)
+						.map(PingPong::reply)
+						.map(DefaultPayload::create)
+						.switchIfEmpty(x -> DefaultPayload.create("ping"));
 				}
 			};
 
